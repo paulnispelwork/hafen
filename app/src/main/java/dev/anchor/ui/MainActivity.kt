@@ -430,6 +430,9 @@ private fun StatusScreen(p: Policy, health: Health, onBack: () -> Unit) {
         SetupChecklist()
         if (p.dnsFilterEnabled) Group(Modifier.padding(top = 10.dp)) { Check("DNS filter", "Local filter for all apps.", DnsVpnService.running) }
         Hint("Have a computer? ./setup.sh <serial> from the project does all of this in one go.", Modifier.padding(top = 10.dp, start = 4.dp))
+        SectionTitle("Backup")
+        Hint("Your blocks, rhythms, essentials and settings as a file, e.g. before moving to a new phone. Restoring only works on a fresh setup.", Modifier.padding(start = 4.dp))
+        BackupRow()
 
         pending?.let { pd ->
             SectionTitle("Waiting to loosen")

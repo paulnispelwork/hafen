@@ -246,7 +246,9 @@ internal fun SetupScreen(onDone: () -> Unit) {
                 style = MaterialTheme.typography.bodyMedium, color = C.Muted, modifier = Modifier.padding(top = 8.dp, bottom = 20.dp),
             )
             SetupChecklist()
-            Hint("Nothing leaves your phone. You can change all of this later under Settings › Protection status.", Modifier.padding(top = 16.dp, start = 4.dp))
+            Hint("Nothing leaves your phone. You can change all of this later under Settings › Setup & status.", Modifier.padding(top = 16.dp, start = 4.dp))
+            Hint("Moving from another Hafen install?", Modifier.padding(top = 16.dp, start = 4.dp))
+            BackupRow(showExport = false)
             Spacer(Modifier.height(24.dp))
         }
         Surface(color = C.Card) {
@@ -261,3 +263,26 @@ internal fun SetupScreen(onDone: () -> Unit) {
     }
 }
 
+
+/** Back up to a file / restore from one (Android's file picker, nothing leaves the phone). */
+@Composable
+internal fun BackupRow(showExport: Boolean = true) {
+    val ctx = LocalContext.current
+    val export = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        if (uri != null) runCatching {
+            ctx.contentResolver.openOutputStream(uri)?.use { it.write(dev.anchor.policy.PolicyStore.exportJson().toByteArray()) }
+            Toast.makeText(ctx, "Backup saved", Toast.LENGTH_SHORT).show()
+        }
+    }
+    val restore = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            val text = runCatching { ctx.contentResolver.openInputStream(uri)?.use { it.readBytes().decodeToString() } }.getOrNull()
+            val err = if (text == null) "Couldn't read that file." else dev.anchor.policy.PolicyStore.restore(ctx, text)
+            Toast.makeText(ctx, err ?: "Restored: your blocks and settings are back", Toast.LENGTH_LONG).show()
+        }
+    }
+    Row(Modifier.fillMaxWidth().padding(top = 4.dp)) {
+        if (showExport) TextButton(onClick = { export.launch("hafen-backup.json") }) { Text("Back up settings") }
+        TextButton(onClick = { restore.launch(arrayOf("application/json", "text/plain", "*/*")) }) { Text("Restore from backup") }
+    }
+}

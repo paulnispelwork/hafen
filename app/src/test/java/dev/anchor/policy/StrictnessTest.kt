@@ -107,5 +107,7 @@ class StrictnessTest {
 
     @Test fun moreFavoritesIsNotLoosening() {
         assertFalse(Strictness.isLooser(Policy(), Policy(launcherApps = listOf("a", "b"))))
+        val nudging = Policy(nudgeEnabled = true, lockedUntil = Long.MAX_VALUE)
+        assertFalse(Strictness.isLooser(nudging, nudging.copy(launcherApps = listOf("com.whatsapp"))))
     }
 }

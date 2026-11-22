@@ -186,6 +186,24 @@ object PolicyStore {
     @Synchronized
     fun cancelPending() = setPending(null)
 
+    /** Everything you set up, as a file: for moving to another build or phone. */
+    fun exportJson(): String = json.encodeToString(policy.value)
+
+    /**
+     * Restores a backup. Only on a fresh setup (no running block, no settings lock), so it can never
+     * be used to replace stricter rules with looser ones. Blocks in the backup come back with their end times.
+     */
+    @Synchronized
+    fun restore(ctx: Context, text: String): String? {
+        val now = TrustedTime.now()
+        val cur = policy.value
+        if (Targets.active(cur, now).isNotEmpty() || cur.lockedUntil > now) return "Only possible on a fresh setup without running blocks."
+        val p = runCatching { json.decodeFromString<Policy>(text) }.getOrNull() ?: return "That file isn't a Hafen backup."
+        setPolicy(p.copy(released = false)); setPending(null)
+        Enforcer.enforceAsync(ctx)
+        return null
+    }
+
     /** Drop blocks that have run out. Returns true if anything changed. */
     @Synchronized
     fun pruneExpired(): Boolean {
