@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Hafen</string>
+    <string name="a11y_desc">Hafen watches which app is in front so it can enforce time budgets, wait screens and block Reels/Shorts. Nothing leaves the phone.</string>
+</resources>
