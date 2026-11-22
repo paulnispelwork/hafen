@@ -20,7 +20,7 @@
         android:roundIcon="@mipmap/ic_launcher"
         android:theme="@style/Theme.Anchor"
         android:allowBackup="false"
-        android:testOnly="true"
+        android:testOnly="${testOnly}"
         tools:ignore="HardcodedDebugMode"
         android:supportsRtl="true">
 

@@ -175,6 +175,15 @@ private fun LauncherScreen(resumeTick: Int) {
             color = C.Muted, fontSize = 13.sp, modifier = Modifier.padding(top = 2.dp),
         )
         if (Rules.inBedtime(p)) Text("bedtime. put it down.", color = C.Accent, modifier = Modifier.padding(top = 10.dp))
+        // if the watcher was switched off (e.g. force-stopped), blocks don't hold: say so where you can't miss it
+        val watching = remember(now, resumeTick) { dev.anchor.enforce.Enforcer.watcherEnabled(ctx) }
+        if (!watching) Text(
+            "hafen's watcher is off, blocks aren't enforced · tap to fix",
+            color = C.Accent, fontSize = 14.sp,
+            modifier = Modifier.padding(top = 12.dp).combinedClickable(onClick = {
+                runCatching { ctx.startActivity(Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+            }),
+        )
 
         Spacer(Modifier.weight(1f))
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -186,6 +195,10 @@ private fun LauncherScreen(resumeTick: Int) {
                 }
             }
         }
+        if (p.launcherApps.isEmpty()) Text(
+            "swipe up for all apps · long-press one to put it here",
+            color = C.Muted.copy(alpha = 0.6f), fontSize = 13.sp, modifier = Modifier.padding(top = 28.dp),
+        )
         Spacer(Modifier.weight(1.3f))
 
         // bottom bar: held notifications · all apps · hafen

@@ -48,6 +48,12 @@ object Enforcer {
         }
     }
 
+    /** Switch Hafen's home screen component on or off right now (the setup guide needs it before asking Android). */
+    fun setLauncherComponent(ctx: Context, on: Boolean) {
+        lastLauncher = null
+        applyLauncherComponent(ctx, PolicyStore.policy.value.copy(launcherEnabled = on))
+    }
+
     fun isAdmin(ctx: Context) = runCatching { dpm(ctx).isAdminActive(admin(ctx)) }.getOrDefault(false)
     fun canWriteSecure(ctx: Context) =
         ctx.checkSelfPermission(Manifest.permission.WRITE_SECURE_SETTINGS) == PackageManager.PERMISSION_GRANTED

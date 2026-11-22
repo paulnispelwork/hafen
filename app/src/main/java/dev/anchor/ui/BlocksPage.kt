@@ -98,6 +98,7 @@ fun TargetIcon(key: String, size: androidx.compose.ui.unit.Dp = 44.dp) {
 internal fun BlocksScreen(
     current: Policy, pill: PillState,
     onNew: (Set<String>) -> Unit, onOutcome: (PolicyStore.Outcome) -> Unit, onStatus: () -> Unit, onEnded: (String) -> Unit,
+    onArm: () -> Unit = {},
 ) {
     val ctx = LocalContext.current
     var now by remember { mutableLongStateOf(dev.anchor.policy.TrustedTime.now()) }
@@ -117,7 +118,7 @@ internal fun BlocksScreen(
             style = MaterialTheme.typography.headlineLarge,
         )
         Text(
-            if (active.isEmpty()) "Pick what you want gone and for how long. Once it's locked, there's no way back until it ends."
+            if (active.isEmpty()) "Lock what pulls you in, for as long as you choose."
             else if (current.partnerCode != null) "These can't be paused or shortened. Only extended, or ended early with your partner's code."
             else "These can't be paused, shortened or removed. Only extended.",
             style = MaterialTheme.typography.bodyMedium, color = C.Muted, modifier = Modifier.padding(top = 6.dp, bottom = 16.dp),
@@ -125,6 +126,19 @@ internal fun BlocksScreen(
         if (current.lockedUntil > now) {
             Banner("Settings locked until ${fmtDate(current.lockedUntil)}. Only stricter changes until then.")
             Spacer(Modifier.height(12.dp))
+        } else if (!current.armed && pill != PillState.SETUP && active.isNotEmpty()) {
+            // gentle reminder: blocks hold, but settings changes still apply instantly
+            Row(
+                Modifier.fillMaxWidth().padding(bottom = 12.dp).clip(MaterialTheme.shapes.medium).background(C.Card).clickable(onClick = onArm)
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text("Not armed yet", style = MaterialTheme.typography.titleSmall)
+                    Text("Setting changes still apply instantly. Arm Hafen once everything is set up.", style = MaterialTheme.typography.bodySmall, color = C.Muted)
+                }
+                Text("Arm", color = C.Accent, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(start = 12.dp))
+            }
         }
 
         active.forEach { c ->
@@ -134,6 +148,26 @@ internal fun BlocksScreen(
         }
 
         if (active.isEmpty()) {
+            // how it works, in three lines
+            Surface(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large, color = C.Card) {
+                Column(Modifier.padding(vertical = 8.dp)) {
+                    listOf(
+                        "Pick" to "Apps, sites or whole categories like games.",
+                        "Choose how long" to "All the time, or only at certain hours, until a date.",
+                        "Hold to lock" to "From then on it can only be extended. Not paused, not shortened.",
+                    ).forEachIndexed { i, (t, d) ->
+                        Row(Modifier.padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.Top) {
+                            Box(Modifier.size(26.dp).clip(CircleShape).background(C.AccentDim), contentAlignment = Alignment.Center) {
+                                Text("${i + 1}", color = C.Accent, style = MaterialTheme.typography.labelLarge)
+                            }
+                            Column(Modifier.padding(start = 14.dp)) {
+                                Text(t, style = MaterialTheme.typography.titleSmall)
+                                Text(d, style = MaterialTheme.typography.bodySmall, color = C.Muted)
+                            }
+                        }
+                    }
+                }
+            }
             SectionTitle("Start with one")
             FlowPills {
                 listOf("instagram", "youtube", "x", "linkedin", "games").forEach { k ->
@@ -201,13 +235,21 @@ private fun BlockCard(c: Commitment, now: Long, hasCode: Boolean, onEnded: (Stri
             }
             Row(Modifier.fillMaxWidth().padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("until ${fmtDate(c.until)}", style = MaterialTheme.typography.bodySmall, color = C.Muted)
+                    Text((if (rhythm) "daily rhythm until " else "until ") + fmtDate(c.until), style = MaterialTheme.typography.bodySmall, color = C.Muted)
                     if (rhythm) {
-                        val next = Schedule.nextChange(c.windows, nowT)
-                        val nextTxt = next?.let { if (on) " · ends ${fmtDate(it)}" else " · starts ${fmtDate(it)}" } ?: ""
+                        // "ends 20:00" read like the whole block ends: say break / blocked again instead
+                        val next = Schedule.nextChange(c.windows, nowT)?.takeIf { it.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() < c.until }
+                        val after = next?.let { Schedule.nextChange(c.windows, it) }
+                        val hm = java.time.format.DateTimeFormatter.ofPattern("HH:mm")
+                        val nextTxt = when {
+                            next == null -> if (on) " · until the end" else ""
+                            on && after != null && after.toLocalDate() == next.toLocalDate() -> " · break ${fmtDate(next)}–${after.format(hm)}"
+                            on -> " · break from ${fmtDate(next)}"
+                            else -> " · blocked again ${fmtDate(next)}"
+                        }
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 2.dp)) {
                             Box(Modifier.size(7.dp).clip(CircleShape).background(if (on) C.Accent else C.Muted))
-                            Text((if (on) "Blocked now" else "Usable now") + nextTxt, style = MaterialTheme.typography.bodySmall,
+                            Text((if (on) "Blocked now" else "Free now") + nextTxt, style = MaterialTheme.typography.bodySmall,
                                 color = if (on) C.Accent else C.Muted, modifier = Modifier.padding(start = 6.dp))
                         }
                     }

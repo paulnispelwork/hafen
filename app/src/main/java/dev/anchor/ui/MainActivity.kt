@@ -94,7 +94,8 @@ private enum class Tab(val label: String) { BLOCKS("Blocks"), STATS("Stats"), GR
 private enum class Sub { STATUS, SAFETY, LIMITS, BEDTIME, WEB, SHORTS, HOME, DEVICE, NUDGE }
 
 private data class Health(val owner: Boolean, val admin: Boolean, val watcher: Boolean, val secure: Boolean) {
-    val ok get() = (owner || admin) && watcher && secure
+    // secure settings is optional (grayscale only): without a computer it can't be granted
+    val ok get() = (owner || admin) && watcher
 }
 
 @Composable
@@ -129,6 +130,14 @@ private fun AnchorRoot() {
     }
     fun handle(o: PolicyStore.Outcome, okMsg: String) {
         if (o is PolicyStore.Outcome.Applied) say(okMsg) else outcome = o
+    }
+
+    // first start: walk through the permissions (skipped if they're already there, e.g. after ./setup.sh)
+    val uiPrefs = remember { ctx.getSharedPreferences("ui", android.content.Context.MODE_PRIVATE) }
+    var onboarding by remember { mutableStateOf(!uiPrefs.getBoolean("onboarded", false) && !health.ok) }
+    if (onboarding) {
+        SetupScreen { uiPrefs.edit().putBoolean("onboarded", true).apply(); onboarding = false }
+        return
     }
 
     creating?.let { pre ->
@@ -177,7 +186,7 @@ private fun AnchorRoot() {
     ) { pad ->
         Box(Modifier.padding(pad)) {
             when (tab) {
-                Tab.BLOCKS -> BlocksScreen(current, if (!health.ok) PillState.SETUP else if (dev.anchor.enforce.Rules.protecting(current)) PillState.PROTECTED else PillState.UNARMED, onNew = { creating = it }, onOutcome = { handle(it, "Extended.") }, onStatus = { tab = Tab.SETTINGS; sub = Sub.STATUS }, onEnded = { say(it) })
+                Tab.BLOCKS -> BlocksScreen(current, if (!health.ok) PillState.SETUP else if (dev.anchor.enforce.Rules.protecting(current)) PillState.PROTECTED else PillState.UNARMED, onNew = { creating = it }, onOutcome = { handle(it, "Extended.") }, onStatus = { tab = Tab.SETTINGS; sub = Sub.STATUS }, onEnded = { say(it) }, onArm = { tab = Tab.SETTINGS; sub = Sub.SAFETY })
                 Tab.STATS -> StatsScreen(statsTick)
                 Tab.GRAY -> GrayScreen(draft, current, health, set)
                 Tab.ESSENTIALS -> EssentialsScreen(draft, set)
@@ -275,7 +284,7 @@ private fun GrayScreen(p: Policy, current: Policy, health: Health, set: (Policy)
                 }
             }
         }
-        if (!health.secure) Banner("Grayscale needs one permission from the Mac: run ./setup.sh again.", C.Danger, Modifier.padding(top = 12.dp))
+        if (!health.secure) Banner("Grayscale needs one extra permission that Android only grants from a computer. Settings › Protection status shows how.", C.Accent, Modifier.padding(top = 12.dp))
 
         SectionTitle("Always")
         Group { ToggleRow("Gray all the time", "The whole screen, all day.", p.grayscale) { set(p.copy(grayscale = it)) } }
@@ -311,7 +320,7 @@ private fun EssentialsScreen(p: Policy, set: (Policy) -> Unit) {
             }
         }
         SectionTitle("Your essentials")
-        AppListEditor(p.essentials, "Essentials", exclude = hard, emptyText = "None yet. Add banking, maps, authenticator…") { set(p.copy(essentials = it)) }
+        AppListEditor(p.essentials, "Essentials", exclude = hard, emptyText = "None yet. Think banking, 2FA, maps.") { set(p.copy(essentials = it)) }
 
         SectionTitle("Always allowed")
         Hint("Calls, messages, keyboard, clock and Settings can never be blocked.", Modifier.padding(bottom = 10.dp, start = 4.dp))
@@ -346,7 +355,7 @@ private fun SettingsScreen(p: Policy, current: Policy, health: Health, now: Long
 
         SectionTitle("Protection")
         Group {
-            NavRow("Protection status", if (!health.ok) "Needs setup" else if (health.owner) "Device owner" else "Strong soft mode", if (health.ok) C.Ok else C.Accent) { open(Sub.STATUS) }
+            NavRow("Setup & status", if (!health.ok) "Needs setup" else "All set", if (health.ok) C.Ok else C.Accent) { open(Sub.STATUS) }
             Divider()
             NavRow("Strictness & partner code", if (current.armed) "Armed · ${current.cooldownHours}h" else "Not armed", if (current.armed) C.Muted else C.Accent) { open(Sub.SAFETY) }
         }
@@ -359,7 +368,7 @@ private fun SettingsScreen(p: Policy, current: Policy, health: Health, now: Long
             Divider()
             NavRow("Bedtime", p.bedtimeWindows.firstOrNull()?.let { Schedule.describe(it) } ?: "Off") { open(Sub.BEDTIME) }
             Divider()
-            NavRow("Websites & Chrome", "${p.blockedDomains.size} sites") { open(Sub.WEB) }
+            NavRow("Websites", "${p.blockedDomains.size} always blocked") { open(Sub.WEB) }
             Divider()
             NavRow("Reels & Shorts", if (p.blockShortForm) "Blocked" else "Allowed") { open(Sub.SHORTS) }
             Divider()
@@ -415,28 +424,12 @@ private fun StatusScreen(p: Policy, health: Health, onBack: () -> Unit) {
     LaunchedEffect(Unit) { while (true) { delay(1000); now = dev.anchor.policy.TrustedTime.now() } }
     var code by remember { mutableStateOf("") }
 
-    Screen("Protection status", onBack = onBack) {
-        SectionTitle("Engine")
-        Group {
-            if (health.owner) { Check("Device owner", "Switches blocked apps off for real, blocks sites in Chrome, closes every back door.", true); Divider() }
-            else {
-                Check("Uninstall protection", "Device admin: Android won't remove Hafen while it's on.", health.admin)
-                if (!health.admin) TextButton(onClick = {
-                    ctx.startActivity(android.content.Intent(android.app.admin.DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
-                        .putExtra(android.app.admin.DevicePolicyManager.EXTRA_DEVICE_ADMIN, Enforcer.admin(ctx))
-                        .putExtra(android.app.admin.DevicePolicyManager.EXTRA_ADD_EXPLANATION, "Keeps Hafen from being uninstalled while your blocks run."))
-                }, modifier = Modifier.padding(start = 8.dp)) { Text("Switch on") }
-                Divider()
-            }
-            Check("Watcher", "Sees which app is open: grayscale per app, limits, Reels.", health.watcher); Divider()
-            Check("Secure settings", "Grayscale and keeping the watcher on.", health.secure); Divider()
-            Check("Notification access", "Holds back notifications, hides those of blocked apps.", Enforcer.notifyFilterConnected(ctx))
-            if (p.dnsFilterEnabled) { Divider(); Check("DNS filter", "Local filter for all apps.", DnsVpnService.running) }
-        }
-        if (!health.ok) {
-            Text("Finish setup from the Mac:", color = C.Muted, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 12.dp, start = 4.dp))
-            Text("./setup.sh <phone>", fontFamily = FontFamily.Monospace, modifier = Modifier.padding(start = 4.dp, top = 2.dp))
-        }
+    Screen("Setup & status", "What Hafen can do on this phone, and what's still missing.", onBack = onBack) {
+        SectionTitle("Setup")
+        if (health.owner) Banner("Device owner: blocked apps are switched off by Android itself.", C.Ok, Modifier.padding(bottom = 10.dp))
+        SetupChecklist()
+        if (p.dnsFilterEnabled) Group(Modifier.padding(top = 10.dp)) { Check("DNS filter", "Local filter for all apps.", DnsVpnService.running) }
+        Hint("Have a computer? ./setup.sh <serial> from the project does all of this in one go.", Modifier.padding(top = 10.dp, start = 4.dp))
 
         pending?.let { pd ->
             SectionTitle("Waiting to loosen")
@@ -626,7 +619,7 @@ private fun BedtimeScreen(p: Policy, set: (Policy) -> Unit, onBack: () -> Unit) 
 @Composable
 private fun WebScreen(p: Policy, set: (Policy) -> Unit, onBack: () -> Unit) {
     var dom by remember { mutableStateOf("") }
-    Screen("Websites & Chrome", "Sites from your blocks are added automatically. These are blocked on top, always.", onBack = onBack) {
+    Screen("Websites", "Sites from your blocks are added automatically. These are blocked on top, always.", onBack = onBack) {
         val owner = Enforcer.isOwner(LocalContext.current)
         if (!owner) Banner("Hafen watches Chrome's address bar and leaves blocked sites the moment they load.", C.Muted, Modifier.padding(top = 12.dp))
         if (owner) {

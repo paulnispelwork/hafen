@@ -1,8 +1,19 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
     id("org.jetbrains.kotlin.plugin.serialization")
+}
+
+// Release signing comes from a file outside the repo (keystore.local points to it). Without it, release builds are unsigned.
+val signingProps = Properties().also { props ->
+    val pointer = rootProject.file("keystore.local")
+    if (pointer.exists()) {
+        val path = Properties().apply { pointer.inputStream().use { load(it) } }.getProperty("hafen.signing")
+        if (path != null && file(path).exists()) file(path).inputStream().use { props.load(it) }
+    }
 }
 
 android {
@@ -12,11 +23,30 @@ android {
         applicationId = "dev.anchor"
         minSdk = 29
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1"
+        versionCode = 2
+        versionName = "0.9.0"
+    }
+    signingConfigs {
+        if (signingProps.getProperty("storeFile") != null) create("release") {
+            storeFile = file(signingProps.getProperty("storeFile"))
+            storePassword = signingProps.getProperty("storePassword")
+            keyAlias = signingProps.getProperty("keyAlias")
+            keyPassword = signingProps.getProperty("keyPassword")
+        }
     }
     buildTypes {
-        release { isMinifyEnabled = false }
+        debug {
+            // test-only: can only be installed over adb, and adb can remove it again (the developer's safety net)
+            manifestPlaceholders["testOnly"] = "true"
+        }
+        release {
+            // installable from a downloaded APK; no adb back door
+            manifestPlaceholders["testOnly"] = "false"
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfigs.findByName("release")?.let { signingConfig = it }
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

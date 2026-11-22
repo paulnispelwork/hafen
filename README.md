@@ -32,7 +32,8 @@ Hafen is German for *harbour*: a quiet place to tie up the boat.
 
 - [Features](#features)
 - [How it holds](#how-it-holds)
-- [Quick start](#quick-start)
+- [Install on your phone](#install-on-your-phone-no-computer)
+- [Quick start (with a computer)](#quick-start-with-a-computer)
 - [Before you lock anything](#before-you-lock-anything)
 - [FAQ](#faq)
 - [Building and contributing](#building-and-contributing)
@@ -95,7 +96,15 @@ Android doesn't let one app switch off another, so Hafen uses the tools Android 
 
 Hafen is built to stop the 1 a.m. impulse, not a planned escape. If you're determined to get around it in soft mode, safe mode will let you. Knowing that, most evenings it simply works.
 
-## Quick start
+## Install on your phone (no computer)
+
+1. On your phone, download **Hafen-0.9.0.apk** from the [latest release](https://github.com/paulnispelwork/hafen/releases/latest) and open it. Allow installing from your browser when Android asks.
+2. Open Hafen. A short checklist walks you through the permissions, each with a button to the right Android screen.
+3. Android 13+: if a step says "Restricted setting", open App info › ⋮ › **Allow restricted settings**, then try again.
+
+Everything works this way except grayscale and self-repair, which need one permission only a computer (or wireless debugging) can grant. The checklist shows how.
+
+## Quick start (with a computer)
 
 You need a computer with [adb](https://developer.android.com/tools/adb), **USB debugging** switched on on the phone, and **JDK 17**.
 
