@@ -21,7 +21,7 @@
 - **Home screen.** Your favorite apps as plain text, everything else one swipe away with search. Blocked apps are greyed out with the time they come back.
 - **Notification filter.** Only the apps you allow can buzz you. The rest is collected quietly and readable at times you choose (e.g. 12–13 and 20–21). Blocked apps never notify.
 - **Grayscale.** Always, at set times, or only while certain apps are open.
-- **Evening nudge.** After a time you choose, opening any app first suggests reading a book instead.
+- **Evening nudge.** After a time you choose, opening an app from "all apps" first suggests reading a book instead. Never for your essentials or home screen favorites.
 - **Stats.** Screen time, unlocks, blocked attempts, time of day, and a breakdown per app and per day. Kept on the phone only.
 - **Essentials.** Calls, messages, keyboard, clock and settings can never be blocked. You add the rest (banking, authenticator, maps).
 

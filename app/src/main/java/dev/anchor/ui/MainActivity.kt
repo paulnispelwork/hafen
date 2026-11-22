@@ -750,7 +750,7 @@ private fun NudgeSettings(p: Policy, set: (Policy) -> Unit, onBack: () -> Unit) 
     Screen("Evening nudge", "Opening an app in the evening first asks: wouldn't you rather read? You can always go on, it just makes you choose.", onBack = onBack) {
         Spacer(Modifier.height(12.dp))
         Group {
-            ToggleRow("Suggest a book", "Before any app except your essentials opens.", p.nudgeEnabled) { set(p.copy(nudgeEnabled = it)) }
+            ToggleRow("Suggest a book", "Before apps from \"all apps\" open. Never for your essentials or the favorites on your home screen.", p.nudgeEnabled) { set(p.copy(nudgeEnabled = it)) }
             Divider()
             Stepper("Then leave me alone for", "After \"open anyway\", per app.", p.nudgePassMinutes, 5, 5..60, { "${it}m" }) { set(p.copy(nudgePassMinutes = it)) }
         }

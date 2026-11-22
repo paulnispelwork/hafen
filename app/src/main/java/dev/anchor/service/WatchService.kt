@@ -151,17 +151,31 @@ class WatchService : AccessibilityService() {
         since = now
     }
 
+    private var lastGatePkg: String? = null
+    private var lastGateAt = 0L
+
     private fun showGate(pkg: String) {
+        val now = SystemClock.elapsedRealtime()
+        if (pkg == lastGatePkg && now - lastGateAt < 5_000) return
+        lastGatePkg = pkg; lastGateAt = now
         startActivity(Intent(this, GateActivity::class.java)
             .putExtra(GateActivity.EXTRA_PKG, pkg)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP))
     }
 
     private fun shouldNudge(p: dev.anchor.policy.Policy, pkg: String) =
-        p.nudgeEnabled && Rules.launchable.contains(pkg) && pkg !in p.essentials && pkg != p.nudgeApp &&
+        // never for essentials or the apps on your home screen: only for things you dig out of "all apps"
+        p.nudgeEnabled && Rules.launchable.contains(pkg) && pkg !in p.essentials && pkg !in p.launcherApps && pkg != p.nudgeApp &&
             dev.anchor.policy.Schedule.contains(p.nudgeWindows, dev.anchor.policy.TrustedTime.localNow()) && !Usage.hasNudgePass(pkg)
 
+    private var lastNudgePkg: String? = null
+    private var lastNudgeAt = 0L
+
     private fun showNudge(pkg: String) {
+        // during the screen transition the old app can still look "in front": don't open the nudge twice
+        val now = SystemClock.elapsedRealtime()
+        if (pkg == lastNudgePkg && now - lastNudgeAt < 5_000) return
+        lastNudgePkg = pkg; lastNudgeAt = now
         Usage.bump("nudge")
         startActivity(Intent(this, dev.anchor.ui.NudgeActivity::class.java)
             .putExtra(dev.anchor.ui.NudgeActivity.EXTRA_PKG, pkg)

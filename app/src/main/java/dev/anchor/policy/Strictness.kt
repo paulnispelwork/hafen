@@ -62,6 +62,8 @@ object Strictness {
         if (o.nudgeEnabled && widens(Schedule.coverage(o.nudgeWindows, false), Schedule.coverage(n.nudgeWindows, false))) r += "shorter evening nudge"
         if (o.nudgeEnabled && n.nudgePassMinutes > o.nudgePassMinutes) r += "longer pass after the nudge"
         if (o.nudgeEnabled && n.nudgeApp != null && n.nudgeApp != o.nudgeApp) r += "new app exempt from the nudge"
+        // favorites skip the nudge, so while it's on, a new favorite is a small loosening
+        if (o.nudgeEnabled && !o.launcherApps.containsAll(n.launcherApps)) r += "new favorites skip the evening nudge"
         if (n.notifyFilter && o.notifyFilter && !o.notifyAllowed.containsAll(n.notifyAllowed)) r += "more apps may notify"
         if ((o.allAppsDelaySec < 0 && n.allAppsDelaySec >= 0) ||
             (o.allAppsDelaySec >= 0 && n.allAppsDelaySec in 0 until o.allAppsDelaySec)) r += "easier 'all apps'"
