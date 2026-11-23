@@ -23,8 +23,8 @@ android {
         applicationId = "dev.anchor"
         minSdk = 29
         targetSdk = 35
-        versionCode = 3
-        versionName = "0.9.1"
+        versionCode = 4
+        versionName = "0.9.2"
     }
     signingConfigs {
         if (signingProps.getProperty("storeFile") != null) create("release") {

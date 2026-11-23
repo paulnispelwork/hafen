@@ -257,7 +257,11 @@ object Enforcer {
         // "on" means grayscale specifically; colour correction (another daltonizer mode) doesn't count
         val on = Settings.Secure.getInt(cr, "accessibility_display_daltonizer_enabled", 0) == 1 &&
             Settings.Secure.getInt(cr, "accessibility_display_daltonizer", 0) == 0
-        val byUs = prefs.getBoolean("grayByAnchor", false)
+        // No record yet (fresh install, update from a build that lost it, restore): if grayscale is on and the
+        // policy uses grayscale at all, it's ours. Otherwise a reinstall at 21:00 leaves it on forever.
+        val byUs = if (prefs.contains("grayByAnchor")) prefs.getBoolean("grayByAnchor", false)
+            else (on && PolicyStore.policy.value.let { it.grayscale || it.grayscaleWindows.isNotEmpty() || it.grayscaleApps.isNotEmpty() })
+                .also { prefs.edit().putBoolean("grayByAnchor", it).apply() }
         when {
             want && !on -> {
                 // remember colour correction someone had on, to give it back afterwards

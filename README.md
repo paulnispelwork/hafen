@@ -98,7 +98,7 @@ Hafen is built to stop the 1 a.m. impulse, not a planned escape. If you're deter
 
 ## Install on your phone (no computer)
 
-1. On your phone, download **Hafen-0.9.1.apk** from the [latest release](https://github.com/paulnispelwork/hafen/releases/latest) and open it. Allow installing from your browser when Android asks.
+1. On your phone, download the **Hafen APK** from the [latest release](https://github.com/paulnispelwork/hafen/releases/latest) and open it. Allow installing from your browser when Android asks.
 2. Open Hafen. A short checklist walks you through the permissions, each with a button to the right Android screen.
 3. Android 13+: if a step says "Restricted setting", open App info › ⋮ › **Allow restricted settings**, then try again.
 
