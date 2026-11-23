@@ -129,7 +129,7 @@ The script builds the app, installs it and grants what it needs over adb:
 | Notification access | The notification filter |
 | Usage access | History for the stats |
 
-Then open Hafen, go to **Settings › Protection status**, and check that everything is green. To use Hafen as your home screen: **Settings › Home & notifications › Use Hafen as home screen › Make default**.
+Then open Hafen, go to **Settings › Setup & status**, and check that everything is green. To use Hafen as your home screen: **Settings › Home & notifications › Use Hafen as home screen › Make default**.
 
 ## Before you lock anything
 
@@ -137,12 +137,7 @@ Then open Hafen, go to **Settings › Protection status**, and check that everyt
 2. **Add your essentials** (banking, 2FA, maps) before you block whole categories like games.
 3. **Try a short block first:** "rest of today".
 4. **Hand over the partner code** before your first long block, if you want an emergency exit at all.
-5. **This is a test-only build.** While it is, a connected computer can still remove it:
-   ```bash
-   adb shell dpm remove-active-admin dev.anchor/.enforce.AdminReceiver
-   adb uninstall dev.anchor
-   ```
-   That's your safety net while you try it out. A release build closes that door, so back up your signing key first: without it you can never update the app.
+5. **Know how to get out.** Removing Hafen works only through *Settings › Strictness & partner code › Allow removing Hafen*, and only once no block and no settings lock are running. `./setup.sh` installs a debug build that a connected computer can still remove (`adb uninstall dev.anchor`); the release APK can't be removed that way.
 
 ## FAQ
 
@@ -187,7 +182,7 @@ Issues and pull requests are welcome. Two ground rules:
 
 ## Roadmap
 
-- [ ] Release build with a proper signing setup
+- [x] Signed release build, installable from the phone
 - [ ] German translation (the app is English today)
 - [ ] F-Droid
 - [ ] Optional black wallpaper during setup, so Android's own overview stays calm too
